@@ -1,6 +1,11 @@
+#include <inttypes.h>
+#include <stdlib.h>
 #include <string.h>
 #include "driver/i2c_master.h"
 #include "esp_log.h"
+/* esp_rom_delay_us() is declared here; without it the short sensor gaps
+ * compile as an implicit declaration. */
+#include "esp_rom_sys.h"
 #include "esp_timer.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"

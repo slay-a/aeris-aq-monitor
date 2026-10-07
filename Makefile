@@ -10,6 +10,17 @@
 #   make serve      live dashboard at http://localhost:8080
 #   make all-checks everything CI runs
 
+# With -std=c11, glibc hides clock_gettime, nanosleep and parts of the socket
+# API behind __STRICT_ANSI__, so the simulator fails to build on Linux while
+# compiling fine on macOS. Request POSIX.1-2008 explicitly there. macOS wants
+# _DARWIN_C_SOURCE instead: defining _POSIX_C_SOURCE on Darwin *hides* BSD
+# socket extensions rather than exposing them.
+ifeq ($(shell uname -s),Darwin)
+POSIX_FLAGS := -D_DARWIN_C_SOURCE
+else
+POSIX_FLAGS := -D_POSIX_C_SOURCE=200809L -D_DEFAULT_SOURCE
+endif
+
 CC      ?= cc
 PYTHON  ?= python3
 VENV    := ../.venv/bin/python
@@ -20,7 +31,8 @@ BUILD   := build
 # Without this a freshly trained model silently tests the previous one.
 CFLAGS  := -std=c11 -O2 -g -Wall -Wextra -Wshadow -Wconversion \
            -Wno-sign-conversion -Wpointer-arith -Wstrict-prototypes \
-           -Wmissing-prototypes -MMD -MP -Icore/include -Isim/include \
+           -Wmissing-prototypes -MMD -MP $(POSIX_FLAGS) \
+           -Icore/include -Isim/include \
            $(CFLAGS_EXTRA)
 LDFLAGS := -lm -lpthread
 

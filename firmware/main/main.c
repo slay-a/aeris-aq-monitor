@@ -17,12 +17,13 @@
  * that, and the two five-second waits in it made the web server unreachable for
  * ten seconds out of every cycle.
  */
+#include <inttypes.h>
 #include <stdio.h>
 #include "aeris/app.h"
-#include "esp_app_desc.h"
 #include "esp_chip_info.h"
 #include "esp_err.h"
 #include "esp_log.h"
+#include "esp_system.h"
 #include "esp_timer.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/semphr.h"
@@ -106,9 +107,10 @@ void app_main(void)
 {
     esp_chip_info_t chip;
     esp_chip_info(&chip);
+    /* esp_chip_info_t::revision is encoded as major * 100 + minor. */
     ESP_LOGI(TAG, "%s on %s rev %d.%d, %d core(s), free heap %" PRIu32,
-             FW_VERSION, CONFIG_IDF_TARGET, chip.full_revision / 100,
-             chip.full_revision % 100, chip.cores, esp_get_free_heap_size());
+             FW_VERSION, CONFIG_IDF_TARGET, chip.revision / 100,
+             chip.revision % 100, chip.cores, esp_get_free_heap_size());
     ESP_LOGI(TAG, "model %s: %" PRIu32 " parameter bytes, %d features, %d classes",
              AERIS_MODEL_ID, aeris_model_size_bytes(),
              AERIS_N_FEATURES, AERIS_N_CLASSES);
