@@ -118,8 +118,9 @@ the integer path is what the "on-device inference" claim rests on.
 **Write both numbers into `docs/ML.md` and into the résumé bullet.** Do not
 quote the host figure.
 
-Also record: free heap after init (`esp_get_free_heap_size()`), and the flash
-used by the app from `idf.py size`.
+Also record free heap after init (`esp_get_free_heap_size()`). Flash is already
+known from CI: **846 kB** (0xd3940), leaving 45 % of the 1.5 MB app partition
+free. Confirm `idf.py size` agrees on your toolchain version.
 
 ### 10. Collect real labelled data
 
@@ -171,6 +172,6 @@ Fill in when the hardware arrives.
 | 9 Inference (full) | | | |
 | 9 Inference (argmax only) | | | |
 | 9 Free heap after init | | | |
-| 9 Flash used | | | |
+| 9 Flash used | 846 kB | 2026-10-07 | from CI, ESP-IDF v5.3 |
 | 10 Real-data accuracy | | | |
 | 11 Soak: uptime / resets | | | |

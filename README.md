@@ -1,5 +1,7 @@
 # Aeris AQ Monitor
 
+[![CI](https://github.com/slay-a/aeris-aq-monitor/actions/workflows/ci.yml/badge.svg)](https://github.com/slay-a/aeris-aq-monitor/actions/workflows/ci.yml)
+
 An indoor air-quality monitor built on an ESP32-C3 that measures CO₂, VOC/NOx,
 temperature, humidity and particulates over one I²C bus, and runs a quantized
 neural network on-device to say **why** the air changed — cooking, someone in
@@ -62,6 +64,17 @@ All figures below are from the simulator — see
 | Acceptance scenario | 99.0 % of settled samples correct |
 | Test suite | 1192 checks |
 | Fault injection | 354 of 354 injected bit-flips caught by CRC |
+| Firmware binary | 846 kB, 45 % of the app partition free |
+
+CI runs three jobs on every push: the host tests and simulation, a from-scratch
+dataset regeneration and retrain (which must still clear an accuracy floor and
+stay bit-exact against the C kernel), and an actual ESP-IDF v5.3 build for the
+esp32c3 target. The firmware size above is from that build.
+
+A Linux retrain lands at 98.23 % rather than the 98.25 % of the committed model.
+The dataset is produced by C float code and `expf`/`logf` differ between libm
+implementations, so the weights differ by a few LSB across platforms. CI
+therefore checks the accuracy floor and the parity, not byte equality.
 
 ```
 int8 confusion (rows = truth, cols = predicted)

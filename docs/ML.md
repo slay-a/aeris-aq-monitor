@@ -150,6 +150,13 @@ follows. In a real room that boundary will be considerably worse.
 Regenerate all of this with `make model`; the full report is written to
 `ml/data/report.json`.
 
+A note on reproducibility: these numbers come from the committed model, trained
+on macOS. The same pipeline on Linux lands at 98.23 % instead of 98.25 %,
+because the dataset is produced by C float code and `expf`/`logf` differ between
+libm implementations, so the weights differ by a few least-significant bits. CI
+therefore requires a from-scratch retrain to clear an accuracy floor and to stay
+bit-exact against the C kernel, rather than requiring byte-identical weights.
+
 ## From a prediction to a label on screen
 
 Raw argmax at 0.2 Hz flickers. One borderline sample flips the dashboard from
