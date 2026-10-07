@@ -1,0 +1,33 @@
+# Target
+CONFIG_IDF_TARGET="esp32c3"
+
+# The dashboard plus four sensor drivers plus lwIP does not fit the default
+# 1 MB app partition comfortably once debug symbols are in, so use a custom
+# table with a single 1.5 MB factory app (no OTA: this is a bench device).
+CONFIG_PARTITION_TABLE_CUSTOM=y
+CONFIG_PARTITION_TABLE_CUSTOM_FILENAME="partitions.csv"
+
+# Optimise for size: nothing here is latency-critical at a 5 s sample period.
+CONFIG_COMPILER_OPTIMIZATION_SIZE=y
+
+# The ESP32-C3 is RV32IMC with no FPU, so float work is soft-float. That is
+# acceptable at 0.2 Hz (the integer inference path is unaffected), but keep
+# newlib's float printf out of the binary -- it is large and only the logging
+# uses it.
+CONFIG_NEWLIB_NANO_FORMAT=y
+
+# HTTP server: the history response is ~9 kB, so allow a generous send buffer.
+CONFIG_HTTPD_MAX_REQ_HDR_LEN=1024
+CONFIG_HTTPD_MAX_URI_LEN=256
+
+# WiFi: modem sleep between samples.
+CONFIG_ESP_WIFI_STATIC_RX_BUFFER_NUM=8
+CONFIG_ESP_WIFI_DYNAMIC_RX_BUFFER_NUM=16
+
+# Watchdog: the sampling task blocks for up to 500 ms on an SCD40 stop and
+# 10 s on a self-test, both of which are legitimate.
+CONFIG_ESP_TASK_WDT_TIMEOUT_S=15
+
+# Brown-out detector on: a PMSA003I fan spinning up can sag a weak supply.
+CONFIG_ESP_BROWNOUT_DET=y
+CONFIG_ESP_BROWNOUT_DET_LVL_SEL_7=y

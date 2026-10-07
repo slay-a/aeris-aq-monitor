@@ -1,0 +1,81 @@
+menu "Aeris AQ Monitor"
+
+    config AERIS_WIFI_SSID
+        string "WiFi SSID"
+        default ""
+        help
+            Leave empty to skip station mode entirely and come up as an open
+            SoftAP named aeris-XXXX, with the dashboard at 192.168.4.1. That is
+            the right setting for a bench with no router.
+
+    config AERIS_WIFI_PASSWORD
+        string "WiFi password"
+        default ""
+        help
+            WPA2 passphrase. Ignored when the SSID is empty.
+
+    menu "I2C bus"
+        config AERIS_I2C_SDA_GPIO
+            int "SDA GPIO"
+            default 5
+            range 0 21
+            help
+                GPIO5 and GPIO6 are free on a bare ESP32-C3-DevKitM-1.
+                Avoid GPIO2, 8 and 9: they are strapping pins, and a pull-up
+                from an I2C breakout on GPIO9 holds the chip in download mode.
+
+        config AERIS_I2C_SCL_GPIO
+            int "SCL GPIO"
+            default 6
+            range 0 21
+
+        config AERIS_I2C_FREQ_HZ
+            int "SCL frequency (Hz)"
+            default 100000
+            range 50000 400000
+            help
+                All four sensors are specified for 100 kHz standard mode. The
+                SCD40 tolerates 400 kHz but gains nothing at a 5 s sample
+                period, and 100 kHz leaves far more margin on hand-wired runs.
+    endmenu
+
+    menu "Status LED"
+        config AERIS_LED_R_GPIO
+            int "Red channel GPIO (-1 if absent)"
+            default 3
+
+        config AERIS_LED_G_GPIO
+            int "Green channel GPIO (-1 if absent)"
+            default 4
+
+        config AERIS_LED_B_GPIO
+            int "Blue channel GPIO (-1 if absent)"
+            default 10
+            help
+                Set any channel to -1 if your board has fewer LEDs. With a
+                single LED the blink patterns still convey the phase and the
+                air-quality band; only the colour is lost.
+    endmenu
+
+    menu "Calibration"
+        config AERIS_SCD40_TEMP_OFFSET_CENTI
+            int "SCD40 temperature offset (centi-degrees C)"
+            default 400
+            range 0 2000
+            help
+                The SCD40 reads high because its own optical cavity is warm and
+                it sits near the regulator. Measure the offset on your build --
+                docs/BRINGUP.md step 6 -- rather than trusting this default.
+                400 means 4.00 C and is what the reference board measured.
+
+        config AERIS_ALTITUDE_M
+            int "Altitude above sea level (m)"
+            default 0
+            range 0 3000
+            help
+                The SCD40 compensates its pressure broadening from this. It is
+                worth about 2 % of reading per 200 m, so leaving it at 0 in a
+                mountain town biases CO2 noticeably.
+    endmenu
+
+endmenu

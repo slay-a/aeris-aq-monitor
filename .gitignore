@@ -1,0 +1,24 @@
+# Host build
+build/
+*.o
+*.d
+
+# ESP-IDF
+firmware/build/
+firmware/sdkconfig
+firmware/sdkconfig.old
+firmware/managed_components/
+firmware/dependencies.lock
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+
+# The generated dataset is ~30 MB and `make dataset` reproduces it exactly from
+# a seed in under a second, so it is not worth versioning. The trained model and
+# its report are committed, because they are what the firmware builds against.
+ml/data/features.csv
+
+# macOS
+.DS_Store

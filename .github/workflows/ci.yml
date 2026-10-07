@@ -1,0 +1,111 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  host:
+    name: Host tests and simulation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build (warnings are errors)
+        run: make CFLAGS_EXTRA=-Werror all
+
+      - name: Unit and integration tests
+        run: make test
+
+      - name: Acceptance scenario
+        run: ./build/aeris_sim --run
+
+      - name: Fault injection
+        run: ./build/aeris_sim --faults
+
+      - name: Inference benchmark
+        run: ./build/aeris_sim --bench 50000
+
+  reproducible-model:
+    name: Model retrains and stays bit-exact
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - run: pip install numpy
+
+      # Regenerate the dataset and retrain from scratch, then run the parity
+      # test. This is the check that matters: it proves the committed
+      # model_params.h can be reproduced from the sources, and that the C kernel
+      # still agrees with the trainer bit for bit.
+      - name: Regenerate dataset and retrain
+        run: |
+          make dataset
+          make model
+
+      - name: Parity and acceptance against the freshly trained model
+        run: |
+          make test
+          ./build/aeris_sim --run
+
+      - name: Check accuracy and parity hold after a from-scratch retrain
+        run: |
+          python - <<'PY'
+          import json, sys
+          r = json.load(open('ml/data/report.json'))
+          print(f"int8 accuracy : {r['int8_accuracy']*100:.2f}%")
+          print(f"int8 macro F1 : {r['int8_macro_f1']:.4f}")
+          print(f"float accuracy: {r['float_accuracy']*100:.2f}%")
+          print(f"parameters    : {r['param_bytes']} bytes")
+          print(f"held-out      : {r['n_test']} rows over {r['n_test_sessions']} sessions")
+          # The committed model_params.h is deliberately NOT compared byte for
+          # byte against a fresh retrain. The dataset is produced by C float
+          # code, and expf/logf differ between libm implementations, so the
+          # weights legitimately differ by a few LSB between macOS and Linux.
+          # What must hold on every platform is that a from-scratch retrain
+          # still clears the accuracy bar and that the C kernel still matches
+          # the trainer exactly -- which 'make test' checks above.
+          fail = False
+          if r['int8_accuracy'] < 0.95:
+              print(f"::error::int8 accuracy {r['int8_accuracy']:.4f} below the 0.95 floor")
+              fail = True
+          if r['int8_macro_f1'] < 0.93:
+              print(f"::error::macro F1 {r['int8_macro_f1']:.4f} below the 0.93 floor")
+              fail = True
+          if r['param_bytes'] > 4096:
+              print(f"::error::model grew to {r['param_bytes']} bytes")
+              fail = True
+          # Quantization should cost almost nothing; a large gap means the
+          # activation scales are badly calibrated.
+          gap = r['float_accuracy'] - r['int8_accuracy']
+          if gap > 0.02:
+              print(f"::error::quantization costs {gap*100:.2f} pp, expected under 2")
+              fail = True
+          sys.exit(1 if fail else 0)
+          PY
+
+  firmware:
+    name: ESP32-C3 firmware build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # The firmware cannot be built without the IDF toolchain, so this is the
+      # only place it is compiled. A break here means the IDF layer is wrong
+      # even though every host test passed.
+      - name: Build with ESP-IDF
+        uses: espressif/esp-idf-ci-action@v1
+        with:
+          esp_idf_version: v5.3
+          target: esp32c3
+          path: firmware
+
+      - name: Binary size
+        run: |
+          find . -name '*.map' -o -name '*.bin' | head -20

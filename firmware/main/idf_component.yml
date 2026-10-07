@@ -1,0 +1,6 @@
+dependencies:
+  idf:
+    version: ">=5.2"
+  # mDNS puts the dashboard at http://aeris.local/ instead of at whatever
+  # address the router happens to hand out.
+  espressif/mdns: "^1.2"

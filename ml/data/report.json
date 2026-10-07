@@ -1,0 +1,141 @@
+{
+  "model_id": "mlp14x16x16x5-int8",
+  "architecture": [
+    14,
+    16,
+    16,
+    5
+  ],
+  "param_bytes": 708,
+  "float_accuracy": 0.9827734711455641,
+  "float_macro_f1": 0.97794,
+  "int8_accuracy": 0.9825130701279972,
+  "int8_macro_f1": 0.9781599999999999,
+  "float_int8_agreement": 0.9937303447308856,
+  "n_train": 136513,
+  "n_test": 49923,
+  "n_train_sessions": 45,
+  "n_test_sessions": 15,
+  "held_out_sessions": [
+    0,
+    4,
+    10,
+    12,
+    16,
+    19,
+    26,
+    28,
+    32,
+    36,
+    37,
+    47,
+    53,
+    54,
+    57
+  ],
+  "per_class": [
+    {
+      "class": "baseline",
+      "support": 10416,
+      "precision": 0.9622,
+      "recall": 0.9812,
+      "f1": 0.9716
+    },
+    {
+      "class": "occupancy",
+      "support": 20970,
+      "precision": 0.985,
+      "recall": 0.9745,
+      "f1": 0.9797
+    },
+    {
+      "class": "cooking",
+      "support": 9202,
+      "precision": 0.9998,
+      "recall": 0.9996,
+      "f1": 0.9997
+    },
+    {
+      "class": "ventilation",
+      "support": 6889,
+      "precision": 0.9999,
+      "recall": 1.0,
+      "f1": 0.9999
+    },
+    {
+      "class": "volatile",
+      "support": 2446,
+      "precision": 0.9363,
+      "recall": 0.9436,
+      "f1": 0.9399
+    }
+  ],
+  "confusion_int8": [
+    [
+      10220,
+      193,
+      2,
+      0,
+      1
+    ],
+    [
+      378,
+      20435,
+      0,
+      1,
+      156
+    ],
+    [
+      0,
+      4,
+      9198,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      6889,
+      0
+    ],
+    [
+      23,
+      115,
+      0,
+      0,
+      2308
+    ]
+  ],
+  "features": [
+    "co2_ppm",
+    "co2_slope_1min",
+    "co2_slope_5min",
+    "co2_sd_1min",
+    "voc_index",
+    "voc_slope_1min",
+    "voc_slope_5min",
+    "nox_index",
+    "temp_c",
+    "temp_slope_5min",
+    "rh_pct",
+    "abs_humidity",
+    "ah_slope_5min",
+    "pm2_5"
+  ],
+  "classes": [
+    "baseline",
+    "occupancy",
+    "cooking",
+    "ventilation",
+    "volatile"
+  ],
+  "input_scale": 0.0625,
+  "output_scale": 0.004815459030761071,
+  "requant": {
+    "m1": 1461416,
+    "sh1": 11,
+    "m2": 1072351,
+    "sh2": 11
+  }
+}

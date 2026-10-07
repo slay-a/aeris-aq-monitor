@@ -1,0 +1,305 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Aeris AQ Monitor</title>
+<style>
+:root{
+  --bg:#0e1116; --panel:#161b22; --panel2:#1c2230; --line:#2a313c;
+  --fg:#e6edf3; --dim:#8b949e; --accent:#4cc9f0;
+  --good:#3fb950; --fair:#d29922; --poor:#f85149; --bad:#da3633;
+}
+:root[data-theme=light]{
+  --bg:#f6f8fa; --panel:#fff; --panel2:#eef1f5; --line:#d8dee4;
+  --fg:#1f2328; --dim:#636c76; --accent:#0969da;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);
+  font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  padding:16px;max-width:1040px;margin:0 auto}
+header{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+h1{font-size:19px;margin:0;letter-spacing:-.2px}
+h1 span{color:var(--dim);font-weight:400}
+.sp{flex:1}
+button{background:var(--panel2);color:var(--fg);border:1px solid var(--line);
+  border-radius:6px;padding:5px 10px;font-size:12px;cursor:pointer}
+button:hover{border-color:var(--accent)}
+.pill{font-size:11px;padding:2px 8px;border-radius:999px;border:1px solid var(--line);
+  color:var(--dim);text-transform:uppercase;letter-spacing:.06em}
+.hero{background:var(--panel);border:1px solid var(--line);border-radius:10px;
+  padding:18px;display:flex;gap:20px;align-items:center;flex-wrap:wrap;margin-bottom:14px}
+.score{font-size:46px;font-weight:650;line-height:1;letter-spacing:-2px;min-width:92px}
+.hero .what{flex:1;min-width:220px}
+.hero .evt{font-size:17px;font-weight:600;margin-bottom:2px}
+.hero .adv{color:var(--dim);font-size:13px}
+.hero .meta{color:var(--dim);font-size:11px;margin-top:6px}
+.bar{height:5px;border-radius:3px;background:var(--panel2);overflow:hidden;margin-top:9px}
+.bar i{display:block;height:100%;background:var(--accent);transition:width .4s}
+.grid{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));margin-bottom:14px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+.card .k{font-size:11px;color:var(--dim);text-transform:uppercase;letter-spacing:.06em}
+.card .v{font-size:25px;font-weight:600;letter-spacing:-.6px;margin-top:3px}
+.card .u{font-size:12px;color:var(--dim);font-weight:400;margin-left:3px}
+.card .n{font-size:11px;color:var(--dim);margin-top:2px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;
+  padding:14px;margin-bottom:14px}
+.panel h2{font-size:12px;text-transform:uppercase;letter-spacing:.07em;color:var(--dim);
+  margin:0 0 10px}
+svg{width:100%;height:auto;display:block;overflow:visible}
+.ax{stroke:var(--line);stroke-width:1}
+.gl{stroke:var(--line);stroke-width:1;stroke-dasharray:2 4;opacity:.7}
+.tk{fill:var(--dim);font-size:9px}
+.probs{display:flex;flex-direction:column;gap:6px}
+.prow{display:grid;grid-template-columns:92px 1fr 42px;gap:8px;align-items:center;font-size:12px}
+.prow .pb{height:7px;background:var(--panel2);border-radius:4px;overflow:hidden}
+.prow .pb i{display:block;height:100%;background:var(--accent)}
+.prow .pv{text-align:right;color:var(--dim);font-variant-numeric:tabular-nums}
+table{width:100%;border-collapse:collapse;font-size:12px}
+td,th{text-align:left;padding:4px 6px;border-bottom:1px solid var(--line)}
+th{color:var(--dim);font-weight:500;font-size:11px;text-transform:uppercase;letter-spacing:.05em}
+.ok{color:var(--good)}.no{color:var(--poor)}
+td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
+footer{color:var(--dim);font-size:11px;text-align:center;padding:6px 0 18px}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:11px;color:var(--dim);margin-top:8px}
+.legend b{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:4px}
+.offline{background:var(--poor);color:#fff;padding:7px 12px;border-radius:7px;
+  font-size:12px;margin-bottom:12px;display:none}
+svg.narrow .tk{font-size:12px}
+@media(max-width:560px){
+  .score{font-size:38px}.card .v{font-size:21px}
+  header{gap:7px}h1{font-size:16px}
+  button{padding:4px 8px}
+  .pill{padding:2px 6px;font-size:10px}
+  .prow{grid-template-columns:76px 1fr 40px}
+}
+</style>
+</head>
+<body>
+<header>
+  <h1>Aeris <span>AQ Monitor</span></h1>
+  <span class="pill" id="phase">—</span>
+  <span class="sp"></span>
+  <button id="theme">theme</button>
+  <button id="pause">pause</button>
+</header>
+
+<div class="offline" id="offline">Lost contact with the device — retrying.</div>
+
+<div class="hero">
+  <div class="score" id="score">—</div>
+  <div class="what">
+    <div class="evt" id="evt">waiting for data</div>
+    <div class="adv" id="adv">The first reading needs about six minutes of history.</div>
+    <div class="bar"><i id="confbar" style="width:0"></i></div>
+    <div class="meta" id="meta"></div>
+  </div>
+</div>
+
+<div class="grid" id="cards"></div>
+
+<div class="panel">
+  <h2>Last 90 minutes</h2>
+  <svg id="chart" viewBox="0 0 900 260" preserveAspectRatio="xMidYMid meet"></svg>
+  <div class="legend">
+    <span><b style="background:#4cc9f0"></b>CO₂ (ppm)</span>
+    <span><b style="background:#f72585"></b>VOC index</span>
+    <span><b style="background:#b5179e"></b>NOx index</span>
+    <span><b style="background:#fca311"></b>PM2.5 (µg/m³)</span>
+  </div>
+</div>
+
+<div class="panel">
+  <h2>What the model thinks</h2>
+  <div class="probs" id="probs"></div>
+</div>
+
+<div class="panel">
+  <h2>Device</h2>
+  <table id="status"></table>
+</div>
+
+<footer id="foot"></footer>
+
+<script>
+const $=id=>document.getElementById(id);
+const BAND={good:'--good',fair:'--fair',poor:'--poor',bad:'--bad'};
+let paused=false, timer=null;
+
+$('theme').onclick=()=>{
+  const r=document.documentElement;
+  r.dataset.theme = r.dataset.theme==='dark' ? 'light' : 'dark';
+  try{localStorage.setItem('aeris-theme',r.dataset.theme)}catch(e){}
+  draw();
+};
+try{const t=localStorage.getItem('aeris-theme'); if(t) document.documentElement.dataset.theme=t}catch(e){}
+$('pause').onclick=()=>{paused=!paused; $('pause').textContent=paused?'resume':'pause'; if(!paused) tick();};
+
+const fmt=(v,d=0)=>v==null?'—':Number(v).toFixed(d);
+const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+
+async function getJSON(p){
+  const r=await fetch(p,{cache:'no-store'});
+  if(!r.ok) throw new Error(p+' '+r.status);
+  return r.json();
+}
+
+function cards(d){
+  const r=d.readings;
+  const defs=[
+    ['CO₂',fmt(r.co2_ppm),'ppm', r.co2_ppm==null?'':(r.co2_ppm<800?'fresh':r.co2_ppm<1100?'acceptable':'stuffy')],
+    ['VOC index',fmt(r.voc_index),'', '100 = clean baseline'],
+    ['NOx index',fmt(r.nox_index),'', '100 = clean baseline'],
+    ['PM2.5',fmt(r.pm2_5_ugm3,1),'µg/m³', 'WHO 24 h guideline 15'],
+    ['Temperature',fmt(r.temperature_c,1),'°C',''],
+    ['Humidity',fmt(r.humidity_pct,1),'%', fmt(r.abs_humidity_gm3,1)+' g/m³ absolute'],
+  ];
+  $('cards').innerHTML=defs.map(([k,v,u,n])=>
+    `<div class="card"><div class="k">${k}</div><div class="v">${v}<span class="u">${u}</span></div><div class="n">${n}</div></div>`).join('');
+}
+
+function hero(d){
+  const a=d.air_quality, e=d.event;
+  $('score').textContent=a.score;
+  $('score').style.color=css(BAND[a.band]||'--fg');
+  $('phase').textContent=d.phase;
+  const names={baseline:'Air is stable',occupancy:'Room occupied',cooking:'Cooking',
+               ventilation:'Ventilating',volatile:'Solvent or aerosol'};
+  $('evt').textContent=names[e.label]||e.label;
+  $('adv').textContent=e.advice||'';
+  $('confbar').style.width=Math.round((e.confidence||0)*100)+'%';
+  $('confbar').style.background=css('--accent');
+  const mins=Math.floor((e.age_s||0)/60);
+  $('meta').textContent=`${a.band} · limited by ${a.driver} · `+
+    `${Math.round((e.confidence||0)*100)}% confidence · for ${mins} min`;
+}
+
+function probs(d){
+  const p=d.event.probabilities||{};
+  $('probs').innerHTML=Object.entries(p).map(([k,v])=>
+    `<div class="prow"><span>${k}</span><span class="pb"><i style="width:${(v*100).toFixed(1)}%"></i></span>`+
+    `<span class="pv">${(v*100).toFixed(1)}%</span></div>`).join('');
+}
+
+const SERIES=[
+  {key:'co2',   color:'#4cc9f0', min:400, pad:100},
+  {key:'voc',   color:'#f72585', min:0,   pad:30},
+  {key:'nox',   color:'#b5179e', min:0,   pad:30},
+  {key:'pm2_5', color:'#fca311', min:0,   pad:5},
+];
+let hist=null;
+
+function drawChart(){
+  const svg=$('chart'); svg.innerHTML='';
+  // A 900x260 viewBox scaled into a 343px-wide phone gives a 99px-tall chart
+  // with 3px axis labels. Narrow screens get their own aspect ratio instead.
+  const narrow=window.innerWidth<560;
+  svg.classList.toggle('narrow',narrow);
+  const W=narrow?420:900, H=narrow?300:260;
+  const L=narrow?38:46, R=narrow?34:40, T=12, B=narrow?22:26;
+  svg.setAttribute('viewBox',`0 0 ${W} ${H}`);
+  const iw=W-L-R, ih=H-T-B;
+  const NS='http://www.w3.org/2000/svg';
+  const el=(n,a)=>{const e=document.createElementNS(NS,n);
+    for(const k in a) e.setAttribute(k,a[k]); return e;};
+
+  if(!hist||!hist.count){
+    svg.appendChild(el('line',{x1:L,y1:T+ih,x2:W-R,y2:T+ih,class:'ax'}));
+    const t=el('text',{x:W/2,y:H/2,'text-anchor':'middle',class:'tk'});
+    t.textContent='collecting history…'; svg.appendChild(t);
+    return;
+  }
+
+  const n=hist.count, t0=hist.t_s[0], t1=hist.t_s[n-1]||t0+1;
+  const x=i=>L+iw*((hist.t_s[i]-t0)/Math.max(1,t1-t0));
+
+  // Each series is scaled independently: CO2 in the high hundreds and PM2.5 in
+  // single digits cannot share one axis and still show the PM2.5 shape.
+  for(let g=0;g<=4;g++){
+    const y=T+ih*g/4;
+    svg.appendChild(el('line',{x1:L,y1:y,x2:W-R,y2:y,class:g===4?'ax':'gl'}));
+  }
+
+  // Each series is drawn on its own scale; collect the end-point label
+  // positions so they can be de-overlapped afterwards.
+  const tags=[];
+  SERIES.forEach((s,si)=>{
+    const vals=hist[s.key]; if(!vals) return;
+    let lo=Math.min(...vals), hi=Math.max(...vals);
+    lo=Math.min(lo,s.min); hi=hi+s.pad;
+    if(hi-lo<1) hi=lo+1;
+    const y=v=>T+ih*(1-(v-lo)/(hi-lo));
+    let d='';
+    for(let i=0;i<n;i++) d+=(i?'L':'M')+x(i).toFixed(1)+' '+y(vals[i]).toFixed(1);
+    svg.appendChild(el('path',{d,fill:'none',stroke:s.color,'stroke-width':1.8,
+      'stroke-linejoin':'round'}));
+    const last=vals[n-1];
+    tags.push({y:y(last), color:s.color,
+               text:s.key==='pm2_5'?last.toFixed(1):String(Math.round(last))});
+    if(si===0){ // left axis is labelled for CO2, the primary series
+      [0,.25,.5,.75,1].forEach(f=>{
+        const v=lo+(hi-lo)*(1-f);
+        const tx=el('text',{x:L-6,y:T+ih*f+3,'text-anchor':'end',class:'tk',fill:s.color});
+        tx.textContent=Math.round(v); svg.appendChild(tx);
+      });
+    }
+  });
+
+  // Push overlapping end labels apart. Four series on four independent scales
+  // land on top of each other often enough that the numbers were unreadable.
+  const MIN_GAP=narrow?15:12;
+  tags.sort((a,b)=>a.y-b.y);
+  for(let i=1;i<tags.length;i++){
+    if(tags[i].y-tags[i-1].y<MIN_GAP) tags[i].y=tags[i-1].y+MIN_GAP;
+  }
+  // If the stack ran off the bottom, slide the whole group back up.
+  const overflow=tags.length?tags[tags.length-1].y-(T+ih):0;
+  if(overflow>0) tags.forEach(t=>{t.y-=overflow;});
+  tags.forEach(t=>{
+    const tx=el('text',{x:W-R+4,y:t.y+3,'text-anchor':'start',class:'tk',fill:t.color});
+    tx.textContent=t.text; svg.appendChild(tx);
+  });
+
+  const mins=i=>Math.round((hist.t_s[n-1]-hist.t_s[i])/60);
+  [0,Math.floor(n/2),n-1].forEach(i=>{
+    const tx=el('text',{x:x(i),y:H-8,'text-anchor':'middle',class:'tk'});
+    tx.textContent=i===n-1?'now':`-${mins(i)}m`; svg.appendChild(tx);
+  });
+}
+
+function statusTable(s){
+  const rows=Object.entries(s.sensors).map(([k,v])=>
+    `<tr><td>${k}</td><td class="${v.present?'ok':'no'}">${v.present?'present':'absent'}</td>`+
+    `<td class="n">${v.crc_errors??v.frame_errors??0}</td><td class="n">${v.io_errors}</td></tr>`).join('');
+  $('status').innerHTML=
+    '<tr><th>Sensor</th><th>State</th><th class="n">CRC/frame err</th><th class="n">I/O err</th></tr>'+rows;
+  $('foot').textContent=
+    `${s.firmware} · up ${Math.floor(s.uptime_s/60)} min · ${s.counters.samples} samples · `+
+    `${s.counters.crc_errors} CRC errors · model ${s.model.param_bytes} B, `+
+    `${s.model.inference_us} µs/inference · ${s.counters.event_transitions} event changes`;
+}
+
+let resizeTimer=null;
+addEventListener('resize',()=>{
+  clearTimeout(resizeTimer);
+  resizeTimer=setTimeout(drawChart,150);
+});
+
+let drawLast=null;
+function draw(){ if(drawLast){hero(drawLast);cards(drawLast);probs(drawLast);} drawChart(); }
+
+async function tick(){
+  if(paused) return;
+  try{
+    const live=await getJSON('/api/live');
+    drawLast=live; hero(live); cards(live); probs(live);
+    $('offline').style.display='none';
+    const [h,s]=await Promise.all([getJSON('/api/history'),getJSON('/api/status')]);
+    hist=h; drawChart(); statusTable(s);
+  }catch(e){ $('offline').style.display='block'; }
+  if(!paused) timer=setTimeout(tick,5000);
+}
+tick();
+</script>
+</body>
+</html>
